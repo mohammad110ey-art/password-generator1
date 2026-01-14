@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ar">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Password Generator</title>
+
+    <!-- Google Identity -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .box {
+            background: white;
+            padding: 20px;
+            width: 330px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        input,
+        button {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .lang {
+            background: #28a745;
+        }
+
+        small {
+            color: #666;
+            display: block;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="box">
+
+        <!-- Google Login (اختياري) -->
+        <div id="login">
+            <div id="g_id_onload" data-client_id="PUT_YOUR_GOOGLE_CLIENT_ID_HERE" data-callback="onLogin">
+            </div>
+            <div class="g_id_signin"></div>
+        </div>
+
+        <p id="user" style="text-align:center;"></p>
+
+        <hr>
+
+        <button class="lang" onclick="toggleLang()">AR / EN</button>
+
+        <h3 id="title" style="text-align:center;">مولد كلمات المرور</h3>
+
+        <input type="text" id="password" readonly>
+
+        <label id="lengthLabel">
+            الطول:
+            <input type="number" id="length" value="12" min="4" max="32">
+        </label>
+
+        <label><input type="checkbox" id="upper" checked> <span id="u">أحرف كبيرة</span></label>
+        <label><input type="checkbox" id="lower" checked> <span id="l">أحرف صغيرة</span></label>
+        <label><input type="checkbox" id="numbers" checked> <span id="n">أرقام</span></label>
+        <label><input type="checkbox" id="symbols"> <span id="s">رموز</span></label>
+
+        <button onclick="generatePassword()" id="gen">توليد كلمة مرور</button>
+        <button onclick="copyPassword()" id="copy">نسخ كلمة المرور</button>
+
+        <small id="note">تسجيل الدخول اختياري لحفظ كلمات المرور</small>
+
+    </div>
+
+    <script>
+        let token = null;
+        let lang = "ar";
+
+        /* Google Login */
+        function onLogin(response) {
+            token = response.credential;
+            const data = JSON.parse(atob(token.split('.')[1]));
+            document.getElementById("user").innerText =
+                (lang === "ar" ? "مرحباً " : "Welcome ") + data.name;
+        }
+
+        /* Generate Password */
+        function generatePassword() {
+            const length = document.getElementById("length").value;
+            let chars = "";
+
+            if (upper.checked) chars += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            if (lower.checked) chars += "abcdefghijklmnopqrstuvwxyz";
+            if (numbers.checked) chars += "0123456789";
+            if (symbols.checked) chars += "!@#$%^&*()_+-=[]{}|;:,.<>?";
+
+            if (!chars) {
+                alert(lang === "ar" ? "اختر نوع واحد على الأقل" : "Select at least one option");
+                return;
+            }
+
+            let pass = "";
+            for (let i = 0; i < length; i++) {
+                pass += chars[Math.floor(Math.random() * chars.length)];
+            }
+
+            password.value = pass;
+
+            // حفظ فقط إذا المستخدم مسجل Google
+            if (token) {
+                fetch("http://localhost:3000/save", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": token
+                    },
+                    body: JSON.stringify({ password: pass })
+                });
+            }
+        }
+
+        /* Copy */
+        function copyPassword() {
+            if (!password.value) return;
+            password.select();
+            document.execCommand("copy");
+            alert(lang === "ar" ? "تم النسخ ✅" : "Copied ✅");
+        }
+
+        /* Language */
+        function toggleLang() {
+            lang = lang === "ar" ? "en" : "ar";
+            document.documentElement.lang = lang;
+
+            title.innerText = lang === "ar" ? "مولد كلمات المرور" : "Password Generator";
+            gen.innerText = lang === "ar" ? "توليد كلمة مرور" : "Generate Password";
+            copy.innerText = lang === "ar" ? "نسخ كلمة المرور" : "Copy Password";
+            lengthLabel.firstChild.textContent = lang === "ar" ? "الطول: " : "Length: ";
+            u.innerText = lang === "ar" ? "أحرف كبيرة" : "Uppercase";
+            l.innerText = lang === "ar" ? "أحرف صغيرة" : "Lowercase";
+            n.innerText = lang === "ar" ? "أرقام" : "Numbers";
+            s.innerText = lang === "ar" ? "رموز" : "Symbols";
+            note.innerText = lang === "ar"
+                ? "تسجيل الدخول اختياري لحفظ كلمات المرور"
+                : "Login is optional to save passwords";
+        }
+    </script>
+
+</body>
+
+</html>
